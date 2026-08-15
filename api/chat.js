@@ -25,7 +25,7 @@ const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 // A small, capable free coding model. If this ever gets delisted, swap
 // it for another ":free" model from https://openrouter.ai/models?max_price=0
-const OPENROUTER_MODEL = "qwen/qwen3-coder:free";
+const OPENROUTER_MODEL = "openrouter/free";
 
 async function readRawBody(req) {
   const chunks = [];
