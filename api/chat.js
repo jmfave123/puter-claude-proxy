@@ -31,6 +31,8 @@ async function readRawBody(req) {
 }
 
 export default async function handler(req, res) {
+  console.log(`[chat] invoked: ${req.method} ${req.url}`);
+
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method not allowed. Use POST." });
@@ -39,6 +41,7 @@ export default async function handler(req, res) {
   try {
     // --- 1. Validate the auth token env var exists ---
     const authToken = process.env.PUTER_AUTH_TOKEN;
+    console.log(`[chat] PUTER_AUTH_TOKEN present: ${Boolean(authToken)}`);
     if (!authToken) {
       return res.status(500).json({
         error: "Server misconfigured: PUTER_AUTH_TOKEN environment variable is not set.",
@@ -47,6 +50,8 @@ export default async function handler(req, res) {
 
     // --- 2. Read and parse the raw body ourselves ---
     const rawBody = await readRawBody(req);
+    console.log(`[chat] rawBody length: ${rawBody?.length ?? 0}`);
+    console.log(`[chat] rawBody preview: ${(rawBody || "").slice(0, 500)}`);
 
     if (!rawBody || !rawBody.trim()) {
       return res.status(400).json({ error: "Missing request body." });
@@ -55,11 +60,14 @@ export default async function handler(req, res) {
     let body;
     try {
       body = JSON.parse(rawBody);
+      console.log("[chat] JSON.parse succeeded");
     } catch (parseErr) {
+      console.log(`[chat] JSON.parse FAILED: ${parseErr.message}`);
       // Malformed JSON, most likely from unescaped quotes/newlines in the
       // substituted {{TEXT}} value. Try a best-effort recovery: extract
       // whatever is between "content": "..." even if it has stray quotes.
       const recovered = tryRecoverContent(rawBody);
+      console.log(`[chat] recovery ${recovered ? "succeeded" : "failed"}`);
       if (recovered) {
         body = { content: recovered };
       } else {
@@ -83,7 +91,11 @@ export default async function handler(req, res) {
       });
     }
 
+    console.log(`[chat] extracted content length: ${content.length}`);
+    console.log(`[chat] content preview: ${content.slice(0, 300)}`);
+
     // --- 3. Call Puter's OpenAI-compatible endpoint (routes to Claude Sonnet 5) ---
+    console.log("[chat] calling Puter API...");
     const puterRes = await fetch(PUTER_CHAT_URL, {
       method: "POST",
       headers: {
@@ -96,7 +108,9 @@ export default async function handler(req, res) {
       }),
     });
 
+    console.log(`[chat] Puter API status: ${puterRes.status}`);
     const data = await puterRes.json();
+    console.log(`[chat] Puter API response preview: ${JSON.stringify(data).slice(0, 500)}`);
 
     if (!puterRes.ok) {
       return res.status(502).json({
