@@ -1,0 +1,16 @@
+{
+  "name": "natively-puter-claude-proxy",
+  "version": "1.0.0",
+  "description": "Vercel serverless proxy that bridges Natively (cURL) to Puter.js -> Claude 3.5 Sonnet",
+  "type": "module",
+  "main": "api/chat.js",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@heyputer/puter.js": "^2.5.3"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}
