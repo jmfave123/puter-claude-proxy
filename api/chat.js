@@ -97,19 +97,33 @@ export default async function handler(req, res) {
     console.log(`[chat] extracted content length: ${content.length}`);
 
     // --- 3. Call OpenRouter's OpenAI-compatible endpoint ---
+    const SYSTEM_PROMPT =
+      "You are a precise, reliable coding assistant. This is a single-turn " +
+      "request: there will be no follow-up message, so you must give a " +
+      "complete, final answer right now. If the user's message specifies " +
+      "an output format, structure, or set of section headings, you MUST " +
+      "follow it exactly and fill in every section with real, specific " +
+      "content — never leave a section as a placeholder, never write " +
+      "'see above', 'I'll come back to that', or similar deferrals. " +
+      "Always include a complete, working, directly runnable code block " +
+      "when code is requested — never a comment saying code is missing.";
+
     console.log(`[chat] calling OpenRouter (${OPENROUTER_MODEL})...`);
     const orRes = await fetch(OPENROUTER_CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
-        // Optional but recommended by OpenRouter for attribution/rate-limit tracking:
         "HTTP-Referer": "https://puter-claude-proxy.vercel.app",
         "X-Title": "Natively Proxy",
       },
       body: JSON.stringify({
         model: OPENROUTER_MODEL,
-        messages: [{ role: "user", content }],
+        temperature: 0.2,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content },
+        ],
       }),
     });
 
