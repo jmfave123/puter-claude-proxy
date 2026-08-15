@@ -1,6 +1,5 @@
-import { init } from "@heyputer/puter.js/src/init.cjs";
-
-const PUTER_MODEL = "claude-3-5-sonnet";
+const PUTER_CHAT_URL = "https://api.puter.com/puterai/openai/v1/chat/completions";
+const PUTER_MODEL = "claude-sonnet-5";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -37,18 +36,33 @@ export default async function handler(req, res) {
       });
     }
 
-    const puter = init(authToken);
-
-    const puterResponse = await puter.ai.chat(content, {
-      model: PUTER_MODEL,
+    const puterRes = await fetch(PUTER_CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        model: PUTER_MODEL,
+        messages: [{ role: "user", content }],
+      }),
     });
 
-    const aiText = extractText(puterResponse);
+    const data = await puterRes.json();
 
-    if (!aiText) {
+    if (!puterRes.ok) {
+      return res.status(502).json({
+        error: "Puter API returned an error.",
+        details: data,
+      });
+    }
+
+    const aiText = data?.choices?.[0]?.message?.content;
+
+    if (!aiText || typeof aiText !== "string") {
       return res.status(502).json({
         error: "Puter returned an empty or unrecognized response.",
-        raw: puterResponse,
+        raw: data,
       });
     }
 
@@ -69,23 +83,4 @@ export default async function handler(req, res) {
       details: err?.message || String(err),
     });
   }
-}
-
-function extractText(puterResponse) {
-  const message = puterResponse?.message;
-  if (!message) return null;
-
-  if (typeof message.content === "string") {
-    return message.content;
-  }
-
-  if (Array.isArray(message.content)) {
-    return message.content
-      .filter((block) => block?.type === "text" && typeof block.text === "string")
-      .map((block) => block.text)
-      .join("\n")
-      .trim();
-  }
-
-  return null;
 }
